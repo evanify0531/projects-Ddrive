@@ -11,6 +11,7 @@ public class PlayerController : MonoBehaviour
     private bool facingRight = true;
     public Rigidbody2D rb;
     public Transform playerTransform;
+    private Vector2 moveVector;
 
     private float jumpTimeCounter;
     public float jumpTime;
@@ -19,10 +20,13 @@ public class PlayerController : MonoBehaviour
     public float jumpingGravityScale;
     public float fallingGravityScale;
 
-    private bool isGrounded;
+    public bool isGrounded;
     public Transform feetPos;
     public float checkRadius;
     public LayerMask whatIsGround;
+
+    public PlayerAttack playerAttack;
+    public bool isAttacking;
 
 
 
@@ -32,31 +36,45 @@ public class PlayerController : MonoBehaviour
 
     void Start()
     {
-        anim = GetComponent<Animator>();   
+        anim = GetComponent<Animator>();
     }
 
 
     void Update()
     {
-        isGrounded = Physics2D.OverlapCircle(feetPos.position, checkRadius, whatIsGround);
-        anim.SetBool("isGrounded", isGrounded);
+        isAttacking = playerAttack.isAttacking;
 
-        if (isGrounded && Input.GetKeyDown(KeyCode.Space))
+        // Get user input every frame.
+        moveVector = GetInput();
+
+        // Surroundings check
+
+        isGrounded = Physics2D.OverlapCircle(feetPos.position, checkRadius, whatIsGround);
+
+
+        Jump();
+
+        doAnimations();
+    }
+
+    private void Jump()
+    {
+        if (isGrounded && Input.GetKeyDown(KeyCode.Space) && !isAttacking)
         {
             isJumping = true;
-            anim.SetBool("isJumping", isJumping);
+
             jumpTimeCounter = jumpTime;
             rb.gravityScale = jumpingGravityScale;
-            rb.velocity = Vector2.up * jumpForce;
+            moveVector.y = jumpForce;
         }
 
-        
+
 
         if (Input.GetKey(KeyCode.Space))
         {
             if (jumpTimeCounter > 0 && isJumping)
             {
-                rb.velocity = Vector2.up * jumpForce;
+                moveVector.y = jumpForce;
                 jumpTimeCounter -= Time.deltaTime;
             }
 
@@ -70,17 +88,52 @@ public class PlayerController : MonoBehaviour
 
     private void FixedUpdate()
     {
-        moveDir = Input.GetAxisRaw("Horizontal");
-        anim.SetFloat("xSpeed", Mathf.Abs(moveDir));
-        anim.SetFloat("ySpeed", rb.velocity.y);
-        rb.velocity = new Vector2(moveDir * moveSpeed, rb.velocity.y);
+        Run(moveVector);
+    }
 
-        if ((moveDir < 0 && facingRight) || (moveDir > 0 && !facingRight))
+    private void Run(Vector2 moveVector)
+    {
+        // Stop motion when attacking.
+        if (isAttacking)
+        {
+            rb.velocity = Vector2.zero;
+            return;
+        }
+
+
+        rb.velocity = new Vector2(moveVector.x * moveSpeed, moveVector.y);
+    }
+
+    private Vector2 GetInput()
+    {
+        float x;
+
+        if (Input.GetKey(KeyCode.RightArrow))
+            x = 1;
+
+        else if (Input.GetKey(KeyCode.LeftArrow))
+            x = -1;
+
+        else
+            x = 0;
+
+
+        if (((x < 0 && facingRight) || (x > 0 && !facingRight)) && !isAttacking)
         {
             Flip();
         }
-    }
 
+        return new Vector2(x, rb.velocity.y);
+    }   
+
+    private void doAnimations()
+    {
+        anim.SetBool("isGrounded", isGrounded);
+        anim.SetBool("isJumping", isJumping);
+        anim.SetBool("isAttacking", isAttacking);
+        anim.SetFloat("xSpeed", Mathf.Abs(rb.velocity.x));
+        anim.SetFloat("ySpeed", rb.velocity.y);
+    }
 
     private void Flip()
     {
@@ -92,6 +145,6 @@ public class PlayerController : MonoBehaviour
     {
         isJumping = false;
         rb.gravityScale = fallingGravityScale;
-        anim.SetBool("isJumping", isJumping);
+
     }
 }
