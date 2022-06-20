@@ -27,12 +27,13 @@ public class PlayerAttack : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        if (Input.GetKeyDown(KeyCode.A) && Time.time - lastAttack > attackCooldown && player.isGrounded)
+        if (Input.GetKeyDown(KeyCode.A) && Time.time - lastAttack > attackCooldown && player.isGrounded && !player.isDashing && !player.isDashAttacking)
         {
             isAttacking = true;
             lastAttack = Time.time;
             //Attack();
         }
+
 
         // The case where attack is finished 
         else if (Time.time - lastAttack > 0.5f)
