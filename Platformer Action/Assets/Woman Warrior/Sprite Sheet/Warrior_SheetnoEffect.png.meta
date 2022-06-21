@@ -1293,7 +1293,7 @@ TextureImporter:
         width: 69
         height: 44
       alignment: 9
-      pivot: {x: 0.38, y: 0.4090909}
+      pivot: {x: 0.425, y: 0.4090909}
       border: {x: 0, y: 0, z: 0, w: 0}
       outline: []
       physicsShape: []
@@ -1314,7 +1314,7 @@ TextureImporter:
         width: 69
         height: 44
       alignment: 9
-      pivot: {x: 0.38, y: 0.4090909}
+      pivot: {x: 0.425, y: 0.4090909}
       border: {x: 0, y: 0, z: 0, w: 0}
       outline: []
       physicsShape: []
@@ -1335,7 +1335,7 @@ TextureImporter:
         width: 69
         height: 44
       alignment: 9
-      pivot: {x: 0.38, y: 0.4090909}
+      pivot: {x: 0.425, y: 0.4090909}
       border: {x: 0, y: 0, z: 0, w: 0}
       outline: []
       physicsShape: []
@@ -1356,7 +1356,7 @@ TextureImporter:
         width: 69
         height: 44
       alignment: 9
-      pivot: {x: 0.38, y: 0.4090909}
+      pivot: {x: 0.425, y: 0.4090909}
       border: {x: 0, y: 0, z: 0, w: 0}
       outline: []
       physicsShape: []
@@ -1377,7 +1377,7 @@ TextureImporter:
         width: 69
         height: 44
       alignment: 9
-      pivot: {x: 0.38, y: 0.4090909}
+      pivot: {x: 0.45, y: 0.4090909}
       border: {x: 0, y: 0, z: 0, w: 0}
       outline: []
       physicsShape: []
@@ -1398,7 +1398,7 @@ TextureImporter:
         width: 69
         height: 44
       alignment: 9
-      pivot: {x: 0.38, y: 0.4090909}
+      pivot: {x: 0.45, y: 0.4090909}
       border: {x: 0, y: 0, z: 0, w: 0}
       outline: []
       physicsShape: []
@@ -1419,7 +1419,7 @@ TextureImporter:
         width: 69
         height: 44
       alignment: 9
-      pivot: {x: 0.38, y: 0.4090909}
+      pivot: {x: 0.45, y: 0.4090909}
       border: {x: 0, y: 0, z: 0, w: 0}
       outline: []
       physicsShape: []
@@ -1440,7 +1440,7 @@ TextureImporter:
         width: 69
         height: 44
       alignment: 9
-      pivot: {x: 0.38, y: 0.4090909}
+      pivot: {x: 0.45, y: 0.4090909}
       border: {x: 0, y: 0, z: 0, w: 0}
       outline: []
       physicsShape: []
