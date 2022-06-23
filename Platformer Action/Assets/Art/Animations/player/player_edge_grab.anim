@@ -21,19 +21,19 @@ AnimationClip:
   - curve:
     - time: 0
       value: {fileID: 8456781455918796069, guid: 3accdbde4e56f5c4e9cfa311b8cef55f, type: 3}
-    - time: 0.125
+    - time: 0.05
       value: {fileID: -6198279566977372875, guid: 3accdbde4e56f5c4e9cfa311b8cef55f, type: 3}
-    - time: 0.25
+    - time: 0.1
       value: {fileID: 8831371568066152587, guid: 3accdbde4e56f5c4e9cfa311b8cef55f, type: 3}
-    - time: 0.375
+    - time: 0.15
       value: {fileID: 5358277598789592532, guid: 3accdbde4e56f5c4e9cfa311b8cef55f, type: 3}
-    - time: 0.5
+    - time: 0.2
       value: {fileID: -2690619919191375969, guid: 3accdbde4e56f5c4e9cfa311b8cef55f, type: 3}
     attribute: m_Sprite
     path: 
     classID: 212
     script: {fileID: 0}
-  m_SampleRate: 8
+  m_SampleRate: 20
   m_WrapMode: 0
   m_Bounds:
     m_Center: {x: 0, y: 0, z: 0}
@@ -58,7 +58,7 @@ AnimationClip:
     m_AdditiveReferencePoseClip: {fileID: 0}
     m_AdditiveReferencePoseTime: 0
     m_StartTime: 0
-    m_StopTime: 0.625
+    m_StopTime: 0.25
     m_OrientationOffsetY: 0
     m_Level: 0
     m_CycleOffset: 0
@@ -78,7 +78,7 @@ AnimationClip:
   m_HasGenericRootTransform: 0
   m_HasMotionFloatCurves: 0
   m_Events:
-  - time: 0.5
+  - time: 0
     functionName: SetIToTwo
     data: 
     objectReferenceParameter: {fileID: 0}

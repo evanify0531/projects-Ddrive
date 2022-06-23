@@ -14,7 +14,7 @@ public class PlayerController : MonoBehaviour
     private float jumpTimeCounter;
     public float jumpTime;
     private bool isJumping;
-    //private bool isFalling;
+
     // Different gravity scales in different states of jumping.
     public float jumpingGravityScale;
     public float fallingGravityScale;
@@ -26,12 +26,13 @@ public class PlayerController : MonoBehaviour
     public LayerMask whatIsGround;
 
     // wall checks and sliding
-    public float wallCheckDistance;
-    public bool isTouchingWall; // bool checking whether wall is being touched
+    public float wallCheckDistance; 
+    private RaycastHit2D isTouchingWallRC; // bool checking whether wall is being touched
     public bool isWallSliding; // bool checking when wall sliding
     public bool wallJumping; // bool checking when wall jumping
     public float wallSlideSpeed;
     public float wallJumpForce;
+    //public LayerMask whatIsWall;
 
     // used to check whether the player wants to drop off from the wall or not.
     public float wallSlideCancelTime = 1f;
@@ -46,6 +47,11 @@ public class PlayerController : MonoBehaviour
     public Transform ledgeCheck;
     private bool isTouchingLedge = false;
     private bool isGrabbingLedge = false;
+    private float ledgeGrabXPos;
+    private float ledgeGrabXOffset;
+    private float ledgeGrabYOffset;
+    private Collider2D ledgeBC;
+
 
 
     // Utilized in GetInput function.
@@ -74,19 +80,27 @@ public class PlayerController : MonoBehaviour
     public bool isDashing;
     private float dashingPower = 20f;
     private float dashingTime = 0.20f;
-    private float dashingCooldown = 0.85f;
+    private float dashingCooldown = 0.8f;
     [SerializeField] private TrailRenderer tr;
 
     // Variables for dash attack
     public bool isDashAttacking = false;
     public bool canDashAttack = false;
-    public float dashAttackLeeway = 0.85f;
+    public float dashAttackLeeway = 0.8f;
 
 
     // variables for crouching (not moving yet)
-    public bool isCrouching = false;
+    private bool isCrouching = false;
 
-    // For ledge grabbing and idle states.
+    // variables for sliding
+    private bool canSlide = false;
+    public bool isSliding = false;
+    private float slideLeeway = 0.6f;
+    private float slidingPower = 13f;
+    private float maxSlideTime = 0.8f;
+    private float slideInputTime;
+
+    // For ledge grabbing and idle states animation control.
     private int i = 0;
 
     void Start()
@@ -113,6 +127,8 @@ public class PlayerController : MonoBehaviour
 
         DashAttack();
 
+        Slide();
+
         Jump();
 
         Crouch();
@@ -134,7 +150,7 @@ public class PlayerController : MonoBehaviour
             return false;
         }
 
-        else if ((isDashing || isDashAttacking) && isGrounded)
+        else if ((isDashing || isDashAttacking || isSliding) && isGrounded)
         {
             return false;
         }
@@ -154,27 +170,48 @@ public class PlayerController : MonoBehaviour
         isGrounded = Physics2D.OverlapCircle(feetPos.position, checkRadius, whatIsGround);
 
         // I might need to change the layer mask to whatIsGround to another layer just for walls, if I find myself in some trouble with the logic.
-        isTouchingWall = Physics2D.Raycast(wallCheck.position, new Vector2(playerTransform.localScale.x, 0), wallCheckDistance, whatIsGround);
+        //isTouchingWall = Physics2D.Raycast(wallCheck.position, new Vector2(playerTransform.localScale.x, 0), wallCheckDistance, whatIsGround);
+        isTouchingWallRC = Physics2D.Raycast(wallCheck.position, new Vector2(playerTransform.localScale.x, 0), wallCheckDistance, whatIsGround);
 
-        // Change layer mask to walls later
+
+
         isTouchingLedge = Physics2D.Raycast(ledgeCheck.position, new Vector2(playerTransform.localScale.x, 0), wallCheckDistance, whatIsGround);
         
-        if (isTouchingWall && !isGrounded && rb.velocity.y < 5 && Time.time - lastWallJumpTime > wallSlideCooldown && !isDashAttacking && isTouchingLedge)
+
+
+        if (isTouchingWallRC && !isGrounded && rb.velocity.y < 5 && Time.time - lastWallJumpTime > wallSlideCooldown && !isDashAttacking && isTouchingLedge)
         {
             isWallSliding = true;
             i = 0;
         }
-
-        // things to do: ledge grab sprite locking in with offset
-        // when jumping from ledge jumps forward, not straight up
         
-        else if (!isTouchingLedge && isTouchingWall)
+        else if (!isTouchingLedge && isTouchingWallRC)
         {
-            if (i == 0)
+            // Enter ledge grabbing state
+            if (i == 0 && Input.GetKey(KeyCode.F))
             {
                 isWallSliding = false;
                 isGrabbingLedge = true;
+
+                ledgeBC = isTouchingWallRC.collider;
+
+                ledgeGrabXPos = ledgeBC.bounds.center.x;
+                ledgeGrabXOffset = (ledgeBC.bounds.size.x / 2f) + 0.31f;
+                ledgeGrabYOffset = ledgeBC.bounds.center.y + (ledgeBC.bounds.size.y / 2f) - 1.03f;
+
+                if (facingRight)
+                    transform.position = new Vector3(ledgeGrabXPos - ledgeGrabXOffset, ledgeGrabYOffset, 0f);
+                else
+                    transform.position = new Vector3(ledgeGrabXPos + ledgeGrabXOffset, ledgeGrabYOffset, 0f);
                 i = 1;
+            }
+
+            if (isGrabbingLedge)
+            {
+                if (facingRight)
+                    transform.position = new Vector3(ledgeGrabXPos - ledgeGrabXOffset, ledgeGrabYOffset, 0f);
+                else
+                    transform.position = new Vector3(ledgeGrabXPos + ledgeGrabXOffset, ledgeGrabYOffset, 0f);
             }
         }
 
@@ -304,12 +341,6 @@ public class PlayerController : MonoBehaviour
                     x = 0;
 
             }
-
-            /*else if(Input.GetKeyDown(KeyCode.Z))
-            {
-                Debug.Log("ASDI");
-                isGrabbingLedge = false;
-            }*/
         }
 
         else
@@ -329,9 +360,10 @@ public class PlayerController : MonoBehaviour
 
     private void GetDashInput()
     {
-        if (Input.GetKeyDown(KeyCode.C) && canDash && !isWallSliding && !isAttacking)
+        if (Input.GetKeyDown(KeyCode.C) && canDash && !isWallSliding && !isAttacking && !isGrabbingLedge)
         {
             StartCoroutine(CanDashAttack());
+            StartCoroutine(CanSlide());
             StartCoroutine(Dash());
             
         }
@@ -372,7 +404,7 @@ public class PlayerController : MonoBehaviour
 
         }
 
-        else if (Input.GetKey(KeyCode.Z))
+        if (Input.GetKey(KeyCode.Z))
         {
             if (jumpTimeCounter > 0 && isJumping)
             {
@@ -410,12 +442,12 @@ public class PlayerController : MonoBehaviour
 
     private void Crouch()
     {
-        if (isGrounded && Input.GetKeyDown(KeyCode.LeftShift) && !isAttacking)
+        if (isGrounded && Input.GetKeyDown(KeyCode.LeftShift) && !isAttacking && !isSliding)
         {
             isCrouching = true;
         }
 
-        if (Input.GetKeyUp(KeyCode.LeftShift))
+        if (Input.GetKeyUp(KeyCode.LeftShift) && isCrouching)
         { 
             isCrouching = false;
         }
@@ -432,6 +464,7 @@ public class PlayerController : MonoBehaviour
         anim.SetBool("isCrouching", isCrouching);
         anim.SetInteger("ledgeGrabState", i);
         anim.SetBool("isGrabbingLedge", isGrabbingLedge);
+        anim.SetBool("isSliding", isSliding);
         anim.SetFloat("xSpeed", Mathf.Abs(rb.velocity.x));
         anim.SetFloat("ySpeed", rb.velocity.y);
     }
@@ -483,10 +516,16 @@ public class PlayerController : MonoBehaviour
             rb.velocity = Vector2.zero;
         }
 
+        else if (isSliding)
+        {
+            rb.velocity = new Vector2(transform.localScale.x * slidingPower, 0f);
+            if (slidingPower >= 1)
+                slidingPower -= 0.2f;
+        }
+
         else
             rb.velocity = new Vector2(motorVector.x * moveSpeed, motorVector.y);
     }
-
 
     private float WallSlideSpeed()
     {
@@ -514,7 +553,6 @@ public class PlayerController : MonoBehaviour
     {
         wallJumping = false;
         isJumping = false;
-        //isFalling = true;
         rb.gravityScale = fallingGravityScale;
     }
 
@@ -576,6 +614,37 @@ public class PlayerController : MonoBehaviour
 
     }
     
+    private void Slide()
+    {
+        if (canSlide && Input.GetKeyDown(KeyCode.LeftShift) && isGrounded)
+        {
+            slideInputTime = Time.time;
+            slidingPower = 13f;
+            isSliding = true;
+            isDashing = false;
+            canSlide = false;
+        }
+
+        else if (!canSlide && Input.GetKeyDown(KeyCode.LeftShift))
+        {
+            return;
+        }
+
+        else if (isSliding && (Input.GetKeyUp(KeyCode.LeftShift) || Time.time - slideInputTime > maxSlideTime))
+        {
+            isSliding = false;
+        }
+    }
+
+    private IEnumerator CanSlide()
+    {
+        canSlide = true;
+
+        yield return new WaitForSecondsRealtime(slideLeeway);
+
+        canSlide = false;
+    }
+
 
     // Function to be called by animation event, at the end of the dash attack animation.
     private void TurnOffIsDashAttacking()
@@ -584,17 +653,20 @@ public class PlayerController : MonoBehaviour
         isDashAttacking = false;
     }
 
+
     //Called at the end of the animation for ledge grabbing.
     private void SetIToTwo()
     {
         i = 2;
     }
 
+
     private void OnDrawGizmos()
     {
         Gizmos.DrawWireSphere(feetPos.position, checkRadius);
         Gizmos.DrawLine(wallCheck.position, new Vector3(wallCheck.position.x + playerTransform.localScale.x * wallCheckDistance, wallCheck.position.y, wallCheck.position.z));
         Gizmos.DrawLine(ledgeCheck.position, new Vector3(ledgeCheck.position.x + playerTransform.localScale.x * wallCheckDistance, ledgeCheck.position.y, ledgeCheck.position.z));
+        
 
     }
 }
