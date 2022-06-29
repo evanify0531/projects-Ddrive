@@ -4,12 +4,25 @@ using UnityEngine;
 
 public class AttackPoint : MonoBehaviour
 {
-    public int attackDamage = 20;
+    public int damage;
+    public float pushingForce;
+    public Transform player;
+
+
+
+
     private void OnCollisionEnter2D(Collision2D collision)
     {
         if (collision.gameObject.layer == LayerMask.NameToLayer("Enemy"))
         {
-            collision.gameObject.SendMessage("TakeDamage", attackDamage);
+            Damage dmg = new Damage
+            {
+                damageAmount = damage,
+                origin = player.position,
+                pushForce = pushingForce
+            };
+
+            collision.gameObject.SendMessage("TakeDamage", dmg);
         }
     }
 }

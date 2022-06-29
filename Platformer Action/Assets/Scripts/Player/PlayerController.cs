@@ -26,7 +26,7 @@ public class PlayerController : MonoBehaviour
     public LayerMask whatIsGround;
 
     // wall checks and sliding
-    public float wallCheckDistance; 
+    public float wallCheckDistance;
     private RaycastHit2D isTouchingWallRC; // bool checking whether wall is being touched
     public bool isWallSliding; // bool checking when wall sliding
     public bool wallJumping; // bool checking when wall jumping
@@ -37,9 +37,9 @@ public class PlayerController : MonoBehaviour
     // used to check whether the player wants to drop off from the wall or not.
     public float wallSlideCancelTime = 1f;
     public float wallSlideCancelPressTime = 0f;
-    
+
     public float lastWallJumpTime = 0f;
-    public float wallSlideCooldown = 0.2f; // So that player immediately doesn't attach to the same wall after jumping off.
+    public float wallSlideCooldown = 0.3f; // So that player immediately doesn't attach to the same wall after jumping off.
     public float wallJumpKickOffForce = 1.8f;
 
 
@@ -69,7 +69,7 @@ public class PlayerController : MonoBehaviour
     public Transform playerTransform;
     private Animator anim;
     public Transform wallCheck; // For checking whether there is a wall next to the player.
-    
+
 
     // Variables for attacking
     public PlayerAttack playerAttack;
@@ -91,6 +91,10 @@ public class PlayerController : MonoBehaviour
 
     // variables for crouching (not moving yet)
     private bool isCrouching = false;
+    public CeilingCheck ceilingCheck1; // for checking if we can stand while crouching.
+    public CeilingCheck ceilingCheck2;
+    private bool canStand;
+
 
     // variables for sliding
     private bool canSlide = false;
@@ -102,6 +106,28 @@ public class PlayerController : MonoBehaviour
 
     // For ledge grabbing and idle states animation control.
     private int i = 0;
+
+
+    // Coyote time
+    private float coyoteTime = 0.15f;
+    private float coyoteTimeCounter;
+
+    // Jump buffer
+    private float jumpBufferTime = 0.2f;
+    private float jumpBufferCounter;
+
+    // ledge grab to jump
+    private float grabTime = 0.2f;
+    private float grabTimeCounter;
+
+    // Different run system
+    //public float acceleration = 9f;
+    //public float deceleration = 9f;
+    //public float velPower = 1.2f;
+
+
+
+
 
     void Start()
     {
@@ -120,6 +146,8 @@ public class PlayerController : MonoBehaviour
         // Surroundings check
         CheckSurroundings();
 
+        CoyoteTime();
+
         // Get user input every frame.
         moveVector = GetInput();
 
@@ -129,11 +157,16 @@ public class PlayerController : MonoBehaviour
 
         Slide();
 
+        JumpBuffer();
+
         Jump();
+
+        WallJump();
 
         Crouch();
 
         UpdateAnimations();
+
     }
 
     private void FixedUpdate()
@@ -141,7 +174,6 @@ public class PlayerController : MonoBehaviour
 
         ApplyMovement(moveVector);
     }
-
 
     private bool CheckCanMoveBool()
     {
@@ -151,6 +183,11 @@ public class PlayerController : MonoBehaviour
         }
 
         else if ((isDashing || isDashAttacking || isSliding) && isGrounded)
+        {
+            return false;
+        }
+
+        else if ((isDashing && !isGrounded))
         {
             return false;
         }
@@ -176,7 +213,7 @@ public class PlayerController : MonoBehaviour
 
 
         isTouchingLedge = Physics2D.Raycast(ledgeCheck.position, new Vector2(playerTransform.localScale.x, 0), wallCheckDistance, whatIsGround);
-        
+
 
 
         if (isTouchingWallRC && !isGrounded && rb.velocity.y < 5 && Time.time - lastWallJumpTime > wallSlideCooldown && !isDashAttacking && isTouchingLedge)
@@ -184,14 +221,15 @@ public class PlayerController : MonoBehaviour
             isWallSliding = true;
             i = 0;
         }
-        
+
         else if (!isTouchingLedge && isTouchingWallRC)
         {
             // Enter ledge grabbing state
-            if (i == 0 && Input.GetKey(KeyCode.F))
+            if (i == 0 && Input.GetKey(KeyCode.Z))
             {
                 isWallSliding = false;
                 isGrabbingLedge = true;
+                grabTimeCounter = Time.time;
 
                 ledgeBC = isTouchingWallRC.collider;
 
@@ -221,7 +259,7 @@ public class PlayerController : MonoBehaviour
             isGrabbingLedge = false;
             isWallSliding = false;
         }
-            
+
     }
 
     private Vector2 GetInput()
@@ -352,6 +390,7 @@ public class PlayerController : MonoBehaviour
             Flip();
         }
 
+
         // Controlling wall slide speed
         wallSlideSpeed = WallSlideSpeed();
 
@@ -360,41 +399,43 @@ public class PlayerController : MonoBehaviour
 
     private void GetDashInput()
     {
-        if (Input.GetKeyDown(KeyCode.C) && canDash && !isWallSliding && !isAttacking && !isGrabbingLedge)
+        if (Input.GetKeyDown(KeyCode.C) && canDash && !isWallSliding && !isAttacking && !isGrabbingLedge && !isCrouching)
         {
             StartCoroutine(CanDashAttack());
             StartCoroutine(CanSlide());
             StartCoroutine(Dash());
-            
+
+        }
+    }
+
+    private void JumpBuffer()
+    {
+        if (Input.GetKeyDown(KeyCode.Z))
+        {
+            jumpBufferCounter = jumpBufferTime;
+        }
+
+        else
+        {
+            jumpBufferCounter -= Time.deltaTime;
         }
     }
 
     private void Jump()
     {
 
-        if (isGrounded && Input.GetKeyDown(KeyCode.Z) && !isAttacking)
+        if (coyoteTimeCounter > 0f && jumpBufferCounter > 0f && !isAttacking && !isWallSliding && !isDashAttacking)
         {
+            jumpBufferCounter = 0f;
             isJumping = true;
             jumpTimeCounter = jumpTime;
             rb.gravityScale = jumpingGravityScale;
             moveVector.y = jumpForce;
+
         }
 
-        if (isWallSliding && Input.GetKeyDown(KeyCode.Z))
-        {
-            lastWallJumpTime = Time.time;
-            isJumping = true;
-            wallJumping = true;
-            jumpTimeCounter = jumpTime;
-            rb.gravityScale = jumpingGravityScale;
-            wallJumpKickOffForce = 1.8f;
-            Flip();
-            moveVector.x = playerTransform.localScale.x * wallJumpKickOffForce;
-            moveVector.y = wallJumpForce;
-            justWallJumped = true;
-        }
-        //is jumping never called when facing right. why?
-        if (isGrabbingLedge && Input.GetKeyDown(KeyCode.Z))
+        // I'm changing this to getting up on the edge later, instead of just a upward jump
+        else if (isGrabbingLedge && Input.GetKeyDown(KeyCode.Z) && Time.time - grabTime > grabTimeCounter)
         {
             isJumping = true;
             jumpTimeCounter = jumpTime;
@@ -404,52 +445,113 @@ public class PlayerController : MonoBehaviour
 
         }
 
-        if (Input.GetKey(KeyCode.Z))
+        if (isJumping && !wallJumping)
         {
-            if (jumpTimeCounter > 0 && isJumping)
+            if (jumpTimeCounter > 0)
             {
-                // Only when wall jumping
-                if (wallJumping)
-                {
-                    wallJumpKickOffForce -= 0.1f;
-                    if (wallJumpKickOffForce < 1)
-                        wallJumpKickOffForce = 1;
-                    moveVector.y = wallJumpForce;
-                    moveVector.x = playerTransform.localScale.x * wallJumpKickOffForce;
-                    jumpTimeCounter -= Time.deltaTime;
-                }
-                // Only when jumping from the ground
-                else if (isJumping && !wallJumping)
-                {
-                    moveVector.y = jumpForce;
-                    jumpTimeCounter -= Time.deltaTime;
+                moveVector.y = jumpForce;
+                jumpTimeCounter -= Time.deltaTime;
+            }
+            
+            else
+            {
+                Falling();
+            }
+        }
 
-                }
+        if (isJumping && !wallJumping && Input.GetKeyUp(KeyCode.Z) && !justWallJumped)
+        {
+            Falling();
+        }
+    }
+
+    private void WallJump()
+    {
+        if (isWallSliding && Input.GetKeyDown(KeyCode.Z))
+        {
+            jumpBufferCounter = 0f;
+            lastWallJumpTime = Time.time;
+            isJumping = true;
+            wallJumping = true;
+            jumpTimeCounter = jumpTime;
+            rb.gravityScale = jumpingGravityScale;
+            wallJumpKickOffForce = 2f;
+            Flip();
+            moveVector.x = playerTransform.localScale.x * wallJumpKickOffForce;
+            moveVector.y = wallJumpForce;
+            justWallJumped = true;
+        }
+
+        if (isJumping && wallJumping)
+        {
+            if (jumpTimeCounter > 0)
+            {
+                wallJumpKickOffForce -= 0.1f;
+                if (wallJumpKickOffForce < 1)
+                    wallJumpKickOffForce = 1;
+                moveVector.y = wallJumpForce;
+                moveVector.x = playerTransform.localScale.x * wallJumpKickOffForce;
+                jumpTimeCounter -= Time.deltaTime;
             }
 
             else
                 Falling();
         }
 
-        else if (Input.GetKeyUp(KeyCode.Z))
+ /*       if (Input.GetKeyUp(KeyCode.Z) && justWallJumped)
+        {
+            Debug.Log("Here");
             Falling();
+        }*/
 
-        if (justWallJumped && (isGrounded || isWallSliding))
+        if (justWallJumped && (isGrounded || isWallSliding) && jumpTimeCounter <= 0)
         {
             justWallJumped = false;
         }
     }
 
+    private void CheckCanStandBool()
+    {
+        if (ceilingCheck1.canStand && ceilingCheck2.canStand)
+            canStand = true;
+
+        else
+            canStand = false;
+    }
+
     private void Crouch()
     {
+        CheckCanStandBool();
+
         if (isGrounded && Input.GetKeyDown(KeyCode.LeftShift) && !isAttacking && !isSliding)
         {
             isCrouching = true;
         }
 
-        if (Input.GetKeyUp(KeyCode.LeftShift) && isCrouching)
+        if (Input.GetKey(KeyCode.LeftShift) && isCrouching)
+        {
+            isCrouching = true;
+        }
+
+        else if (isCrouching && canStand)
         { 
             isCrouching = false;
+        }
+
+        
+
+    }
+
+    private void CoyoteTime()
+    {
+        if (isGrounded)
+        {
+            coyoteTimeCounter = coyoteTime;
+        }
+
+        else
+        {
+            coyoteTimeCounter -= Time.deltaTime;
         }
     }
 
@@ -478,7 +580,7 @@ public class PlayerController : MonoBehaviour
             return;
         }
 
-        //keeps going down even when grabbing ledge... I don't know why
+
         if (isWallSliding && !isGrabbingLedge)
         {
             if (rb.velocity.y < -wallSlideSpeed)
@@ -488,13 +590,13 @@ public class PlayerController : MonoBehaviour
         }
 
 
-        if (justWallJumped)
+        if (wallJumping)
         {
             motorVector.x = playerTransform.localScale.x * wallJumpKickOffForce;
         }
 
         // is falling
-        else if (!isGrounded && !isJumping && !isDashing && !isWallSliding && !isGrabbingLedge && !justWallJumped)
+        if (!isGrounded && !isJumping && !isDashing && !isWallSliding && !isGrabbingLedge)
         
         {
             rb.velocity = new Vector2(motorVector.x * moveSpeed / 1.25f, motorVector.y);
@@ -524,7 +626,20 @@ public class PlayerController : MonoBehaviour
         }
 
         else
+        {
+            // This is a force based run system that doesn't work with my get axis raw movement system.
+            // I'll keep the code here and commented so that if I return with a new project I can utilize that system.
+            // https://www.youtube.com/watch?v=KbtcEVCM7bw
+            /*float targetSpeed = motorVector.x * moveSpeed;
+            float speedDif = targetSpeed - rb.velocity.x;
+            float accelRate = (Mathf.Abs(targetSpeed) > 0.01f) ? acceleration : deceleration;
+            float movement = Mathf.Pow(Mathf.Abs(speedDif) * accelRate, velPower) * Mathf.Sign(speedDif);
+            rb.AddForce(movement * Vector2.right);
+            rb.velocity = new Vector2(rb.velocity.x, moveVector.y);*/
             rb.velocity = new Vector2(motorVector.x * moveSpeed, motorVector.y);
+        }   
+
+
     }
 
     private float WallSlideSpeed()
@@ -553,6 +668,7 @@ public class PlayerController : MonoBehaviour
     {
         wallJumping = false;
         isJumping = false;
+        coyoteTimeCounter = 0f;
         rb.gravityScale = fallingGravityScale;
     }
 
@@ -633,6 +749,13 @@ public class PlayerController : MonoBehaviour
         else if (isSliding && (Input.GetKeyUp(KeyCode.LeftShift) || Time.time - slideInputTime > maxSlideTime))
         {
             isSliding = false;
+
+            if (!canStand)
+            {
+                Debug.Log("cant stand");
+                isCrouching = true;
+            }
+
         }
     }
 
@@ -649,7 +772,6 @@ public class PlayerController : MonoBehaviour
     // Function to be called by animation event, at the end of the dash attack animation.
     private void TurnOffIsDashAttacking()
     {
-        Debug.Log("ehy");
         isDashAttacking = false;
     }
 
@@ -670,3 +792,78 @@ public class PlayerController : MonoBehaviour
 
     }
 }
+
+
+/*private void WallJump()
+{
+    if (coyoteTimeCounter > 0f && jumpBufferCounter > 0f && !isAttacking && !isWallSliding && !isDashAttacking)
+    {
+
+        jumpBufferCounter = 0f;
+        isJumping = true;
+        jumpTimeCounter = jumpTime;
+        rb.gravityScale = jumpingGravityScale;
+        moveVector.y = jumpForce;
+    }
+
+    if (isWallSliding && jumpBufferCounter > 0f)
+    {
+        jumpBufferCounter = 0f;
+        lastWallJumpTime = Time.time;
+        isJumping = true;
+        wallJumping = true;
+        jumpTimeCounter = jumpTime;
+        rb.gravityScale = jumpingGravityScale;
+        wallJumpKickOffForce = 1.8f;
+        Flip();
+        moveVector.x = playerTransform.localScale.x * wallJumpKickOffForce;
+        moveVector.y = wallJumpForce;
+        justWallJumped = true;
+    }
+
+    // I'm changing this to getting up on the edge later, instead of just a upward jump
+    if (isGrabbingLedge && Input.GetKeyDown(KeyCode.Z))
+    {
+        isJumping = true;
+        jumpTimeCounter = jumpTime;
+        isGrabbingLedge = false;
+        rb.gravityScale = jumpingGravityScale;
+        moveVector.y = jumpForce;
+
+    }
+
+    if (Input.GetKey(KeyCode.Z))
+    {
+        if (jumpTimeCounter > 0 && isJumping)
+        {
+            // Only when wall jumping
+            if (wallJumping)
+            {
+                wallJumpKickOffForce -= 0.1f;
+                if (wallJumpKickOffForce < 1)
+                    wallJumpKickOffForce = 1;
+                moveVector.y = wallJumpForce;
+                moveVector.x = playerTransform.localScale.x * wallJumpKickOffForce;
+                jumpTimeCounter -= Time.deltaTime;
+            }
+            // Only when jumping from the ground
+            else if (isJumping && !wallJumping)
+            {
+                moveVector.y = jumpForce;
+                jumpTimeCounter -= Time.deltaTime;
+
+            }
+        }
+
+        else
+            Falling();
+    }
+
+    else if (Input.GetKeyUp(KeyCode.Z))
+        Falling();
+
+    if (justWallJumped && (isGrounded || isWallSliding))
+    {
+        justWallJumped = false;
+    }
+}*/

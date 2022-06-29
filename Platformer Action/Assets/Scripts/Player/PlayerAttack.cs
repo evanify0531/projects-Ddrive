@@ -6,16 +6,16 @@ public class PlayerAttack : MonoBehaviour
 {
     //public Animator anim;
     public bool isAttacking = false;
-    private float attackCooldown = 0.5f;
+    private float attackCooldown = 0.7f;
     private float lastAttack = -0.5f;
-
-
 
 
     public PlayerController player;
     public Transform attackPoint;
     public float attackRange = 0.5f;
-    public LayerMask enemyLayers;
+    //public LayerMask enemyLayers;
+
+
 
 
     private void Start()
@@ -27,6 +27,7 @@ public class PlayerAttack : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
+        // Press attack 
         if (Input.GetKeyDown(KeyCode.X) && Time.time - lastAttack > attackCooldown && player.isGrounded && !player.isDashing && !player.isDashAttacking && !player.isSliding)
         {
             isAttacking = true;
@@ -41,7 +42,6 @@ public class PlayerAttack : MonoBehaviour
 
 
     }
-
 
     private void Attack()
     {
