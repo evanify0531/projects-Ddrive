@@ -120,6 +120,8 @@ public class PlayerController : MonoBehaviour
     private float grabTime = 0.2f;
     private float grabTimeCounter;
 
+    public PlayerHealth playerHealth;
+
     // Different run system
     //public float acceleration = 9f;
     //public float deceleration = 9f;
@@ -164,6 +166,8 @@ public class PlayerController : MonoBehaviour
         WallJump();
 
         Crouch();
+
+        Hurt();
 
         UpdateAnimations();
 
@@ -552,6 +556,30 @@ public class PlayerController : MonoBehaviour
         else
         {
             coyoteTimeCounter -= Time.deltaTime;
+        }
+    }
+
+    private void Hurt()
+    {
+        if (playerHealth.isHit)
+        {
+            if (isAttacking)
+                isAttacking = false;
+
+            if (isDashing)
+                isDashing = false;
+
+            if (isDashAttacking)
+                isDashAttacking = false;
+
+            if (isSliding)
+                isSliding = false;
+
+            if (isWallSliding)
+                isWallSliding = false;
+
+            if (isCrouching)
+                isCrouching = false;
         }
     }
 

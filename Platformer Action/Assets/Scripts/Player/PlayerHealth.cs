@@ -5,6 +5,15 @@ using UnityEngine;
 public class PlayerHealth : Fighter
 {
 
+
+    private void Update()
+    {
+        if (Time.time - lastImmune > recoverTime)
+        {
+            isHit = false;
+        }
+    }
+
     protected override void Death()
     {
         //implement dying.

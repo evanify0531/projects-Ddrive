@@ -13,6 +13,9 @@ public class Fighter : MonoBehaviour
     public int maxHP;
     public bool isHit = false;
 
+
+    protected float recoverTime = 0.5f;
+
     // Immunity
     public float immuneTime;
     protected float lastImmune;
@@ -46,6 +49,8 @@ public class Fighter : MonoBehaviour
                 Death();
             }
         }
+
+        
     }
 
 
