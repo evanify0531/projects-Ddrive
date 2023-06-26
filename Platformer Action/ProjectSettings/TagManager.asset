@@ -17,7 +17,7 @@ TagManager:
   - Player
   - PlayerAttackPoint
   - EnemyAttackPoint
-  - 
+  - Slope
   - 
   - 
   - 
@@ -44,8 +44,17 @@ TagManager:
   - name: Colliders
     uniqueID: 1322949655
     locked: 0
+  - name: Background
+    uniqueID: 1876495191
+    locked: 0
   - name: Tilemap
     uniqueID: 3792586907
+    locked: 0
+  - name: NPC
+    uniqueID: 1675050043
+    locked: 0
+  - name: Enemy
+    uniqueID: 1731460039
     locked: 0
   - name: Player
     uniqueID: 197043911

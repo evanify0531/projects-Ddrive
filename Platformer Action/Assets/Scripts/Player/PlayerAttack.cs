@@ -13,6 +13,7 @@ public class PlayerAttack : MonoBehaviour
     public PlayerController player;
     public Transform attackPoint;
     public float attackRange = 0.5f;
+    public PlayerHealth playerHealth;
     //public LayerMask enemyLayers;
 
 
@@ -28,13 +29,18 @@ public class PlayerAttack : MonoBehaviour
     void Update()
     {
         // Press attack 
-        if (Input.GetKeyDown(KeyCode.X) && Time.time - lastAttack > attackCooldown && player.isGrounded && !player.isDashing && !player.isDashAttacking && !player.isSliding)
+        if (Input.GetKeyDown(KeyCode.X) && Time.time - lastAttack > attackCooldown && player.isGrounded && !player.isDashing && !player.isDashAttacking && !player.isSliding && !playerHealth.isHit)
         {
+            Debug.Log("Attack!");
             isAttacking = true;
             lastAttack = Time.time;
             //Attack();
         }
 
+        else if (playerHealth.isHit)
+        {
+            isAttacking = false;
+        }
 
         // The case where attack is finished 
         else if (Time.time - lastAttack > 0.5f)

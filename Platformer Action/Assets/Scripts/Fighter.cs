@@ -14,7 +14,7 @@ public class Fighter : MonoBehaviour
     public bool isHit = false;
 
 
-    protected float recoverTime = 0.5f;
+    protected float recoverTime = 0.3f;
 
     // Immunity
     public float immuneTime;
@@ -40,7 +40,7 @@ public class Fighter : MonoBehaviour
             pushDirection = (transform.position - dmg.origin).normalized * dmg.pushForce;
 
             //update on the visuals of hp
-            anim.SetTrigger("Hurt");
+            //anim.SetBool("isHit", isHit);
 
             if (HP <= 0)
             {

@@ -39,7 +39,7 @@ public class PlayerController : MonoBehaviour
     public float wallSlideCancelPressTime = 0f;
 
     public float lastWallJumpTime = 0f;
-    public float wallSlideCooldown = 0.3f; // So that player immediately doesn't attach to the same wall after jumping off.
+    public float wallSlideCooldown = 0.05f; // So that player immediately doesn't attach to the same wall after jumping off.
     public float wallJumpKickOffForce = 1.8f;
 
 
@@ -127,8 +127,12 @@ public class PlayerController : MonoBehaviour
     //public float deceleration = 9f;
     //public float velPower = 1.2f;
 
+    private float wallJumpAddForce;
+    private float jumpDirection;
+    private float slowMultiplier;
 
-
+    public SlopeCheck slopeCheck;
+    public bool isOnSlope;
 
 
     void Start()
@@ -147,6 +151,8 @@ public class PlayerController : MonoBehaviour
 
         // Surroundings check
         CheckSurroundings();
+
+        //CheckSlope();
 
         CoyoteTime();
 
@@ -170,6 +176,7 @@ public class PlayerController : MonoBehaviour
         Hurt();
 
         UpdateAnimations();
+
 
     }
 
@@ -201,6 +208,11 @@ public class PlayerController : MonoBehaviour
             return false;
         }
 
+        else if (playerHealth.isHit)
+        {
+            return false;
+        }
+
         else
             return true;
     }
@@ -220,6 +232,8 @@ public class PlayerController : MonoBehaviour
 
 
 
+
+
         if (isTouchingWallRC && !isGrounded && rb.velocity.y < 5 && Time.time - lastWallJumpTime > wallSlideCooldown && !isDashAttacking && isTouchingLedge)
         {
             isWallSliding = true;
@@ -236,6 +250,8 @@ public class PlayerController : MonoBehaviour
                 grabTimeCounter = Time.time;
 
                 ledgeBC = isTouchingWallRC.collider;
+
+                //Debug.Log(ledgeBC.bounds.size.x);
 
                 ledgeGrabXPos = ledgeBC.bounds.center.x;
                 ledgeGrabXOffset = (ledgeBC.bounds.size.x / 2f) + 0.31f;
@@ -266,6 +282,21 @@ public class PlayerController : MonoBehaviour
 
     }
 
+    private void CheckSlope()
+    {
+        if ((slopeCheck.angle > 15 && slopeCheck.angle < 90) || (slopeCheck.angle < 165 && slopeCheck.angle > 90))
+        {
+            rb.gravityScale = 6.5f;
+            isOnSlope = true;
+        }
+
+
+        else
+        {
+            isOnSlope = false;
+        }
+    }
+
     private Vector2 GetInput()
     {
         if (Input.GetKey(KeyCode.RightArrow) && !isWallSliding && canMove)
@@ -273,6 +304,7 @@ public class PlayerController : MonoBehaviour
 
         else if (Input.GetKey(KeyCode.LeftArrow) && !isWallSliding && canMove)
             x = -1;
+
 
 
         else if (isWallSliding)
@@ -395,8 +427,20 @@ public class PlayerController : MonoBehaviour
         }
 
 
+        if (justWallJumped && x == -jumpDirection)
+        {
+            
+            x = -jumpDirection / slowMultiplier;
+            slowMultiplier -= 0.015f;
+            if (slowMultiplier < 1)
+                slowMultiplier = 1;
+
+        }
+
         // Controlling wall slide speed
         wallSlideSpeed = WallSlideSpeed();
+
+
 
         return new Vector2(x, rb.velocity.y);
     }
@@ -428,7 +472,7 @@ public class PlayerController : MonoBehaviour
     private void Jump()
     {
 
-        if (coyoteTimeCounter > 0f && jumpBufferCounter > 0f && !isAttacking && !isWallSliding && !isDashAttacking)
+        if (coyoteTimeCounter > 0f && jumpBufferCounter > 0f && !isAttacking && !isWallSliding && !isDashAttacking && !isGrabbingLedge)
         {
             jumpBufferCounter = 0f;
             isJumping = true;
@@ -463,10 +507,11 @@ public class PlayerController : MonoBehaviour
             }
         }
 
-        if (isJumping && !wallJumping && Input.GetKeyUp(KeyCode.Z) && !justWallJumped)
+        if (isJumping && !wallJumping && (Input.GetKeyUp(KeyCode.Z) || !Input.GetKey(KeyCode.Z)))
         {
             Falling();
         }
+
     }
 
     private void WallJump()
@@ -479,9 +524,11 @@ public class PlayerController : MonoBehaviour
             wallJumping = true;
             jumpTimeCounter = jumpTime;
             rb.gravityScale = jumpingGravityScale;
-            wallJumpKickOffForce = 2f;
+            wallJumpKickOffForce = 1.5f;
             Flip();
-            moveVector.x = playerTransform.localScale.x * wallJumpKickOffForce;
+            jumpDirection = playerTransform.localScale.x;
+            wallJumpAddForce = jumpDirection * wallJumpKickOffForce;
+            slowMultiplier = 2f;
             moveVector.y = wallJumpForce;
             justWallJumped = true;
         }
@@ -490,11 +537,11 @@ public class PlayerController : MonoBehaviour
         {
             if (jumpTimeCounter > 0)
             {
-                wallJumpKickOffForce -= 0.1f;
+                wallJumpKickOffForce -= 0.01f;
                 if (wallJumpKickOffForce < 1)
                     wallJumpKickOffForce = 1;
                 moveVector.y = wallJumpForce;
-                moveVector.x = playerTransform.localScale.x * wallJumpKickOffForce;
+                wallJumpAddForce = jumpDirection * wallJumpKickOffForce;
                 jumpTimeCounter -= Time.deltaTime;
             }
 
@@ -502,14 +549,16 @@ public class PlayerController : MonoBehaviour
                 Falling();
         }
 
- /*       if (Input.GetKeyUp(KeyCode.Z) && justWallJumped)
+        if (Input.GetKeyUp(KeyCode.Z) && justWallJumped && isJumping && wallJumping)
         {
-            Debug.Log("Here");
             Falling();
-        }*/
+        }
 
-        if (justWallJumped && (isGrounded || isWallSliding) && jumpTimeCounter <= 0)
+        if (justWallJumped && (isGrounded || isWallSliding) && Time.time - lastWallJumpTime > 0.1f)
         {
+
+            wallJumpAddForce = 0;
+            jumpDirection = 0;
             justWallJumped = false;
         }
     }
@@ -597,10 +646,14 @@ public class PlayerController : MonoBehaviour
         anim.SetBool("isSliding", isSliding);
         anim.SetFloat("xSpeed", Mathf.Abs(rb.velocity.x));
         anim.SetFloat("ySpeed", rb.velocity.y);
+        anim.SetBool("isHit", playerHealth.isHit);
+        anim.SetBool("isOnSlope", isOnSlope);
+
     }
 
     private void ApplyMovement(Vector2 motorVector)
     {
+
         // Stop motion when attacking.
         if (isAttacking)
         {
@@ -617,11 +670,30 @@ public class PlayerController : MonoBehaviour
             }
         }
 
-
-        if (wallJumping)
+        /*if (wallJumping && justWallJumped)
         {
-            motorVector.x = playerTransform.localScale.x * wallJumpKickOffForce;
-        }
+            if (Input.GetKey(KeyCode.LeftArrow))
+            {
+                rb.velocity = new Vector2((motorVector.x - 1) * moveSpeed, motorVector.y);
+            }
+
+            else if (Input.GetKey(KeyCode.RightArrow))
+            {
+                rb.velocity = new Vector2((motorVector.x + 1) * moveSpeed, motorVector.y);
+
+            }
+            else
+                rb.velocity = new Vector2(motorVector.x * moveSpeed, motorVector.y);   
+        }*/
+
+        /*if (wallJumping)
+        {
+            float kickf = playerTransform.localScale.x * wallJumpKickOffForce;
+            if (Input.GetKey(KeyCode.RightArrow))
+            {
+                motorVector.x = playerTransform.localScale.x * wallJumpKickOffForce + moveSpeed;
+            }
+        }*/
 
         // is falling
         if (!isGrounded && !isJumping && !isDashing && !isWallSliding && !isGrabbingLedge)
@@ -646,12 +718,25 @@ public class PlayerController : MonoBehaviour
             rb.velocity = Vector2.zero;
         }
 
+        else if (playerHealth.isHit)
+        {
+            rb.velocity = new Vector2(playerHealth.pushDirection.x, 0f);
+        }
+
         else if (isSliding)
         {
             rb.velocity = new Vector2(transform.localScale.x * slidingPower, 0f);
             if (slidingPower >= 1)
                 slidingPower -= 0.2f;
         }
+
+        else if (wallJumping)
+        {
+            rb.velocity = new Vector2((motorVector.x / 5f + wallJumpAddForce) * moveSpeed, motorVector.y);
+        }
+
+
+
 
         else
         {
@@ -664,6 +749,7 @@ public class PlayerController : MonoBehaviour
             float movement = Mathf.Pow(Mathf.Abs(speedDif) * accelRate, velPower) * Mathf.Sign(speedDif);
             rb.AddForce(movement * Vector2.right);
             rb.velocity = new Vector2(rb.velocity.x, moveVector.y);*/
+
             rb.velocity = new Vector2(motorVector.x * moveSpeed, motorVector.y);
         }   
 
@@ -694,6 +780,7 @@ public class PlayerController : MonoBehaviour
 
     private void Falling()
     {
+        wallJumpAddForce = 0;
         wallJumping = false;
         isJumping = false;
         coyoteTimeCounter = 0f;
@@ -766,6 +853,7 @@ public class PlayerController : MonoBehaviour
             slidingPower = 13f;
             isSliding = true;
             isDashing = false;
+            canDashAttack = false;
             canSlide = false;
         }
 

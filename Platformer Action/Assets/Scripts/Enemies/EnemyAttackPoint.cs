@@ -9,8 +9,22 @@ public class EnemyAttackPoint : MonoBehaviour
     public Transform enemy;
 
 
+    private void OnTriggerEnter2D(Collider2D collision)
+    {
+        if (collision.gameObject.layer == LayerMask.NameToLayer("Player"))
+        {
+            Damage dmg = new Damage
+            {
+                damageAmount = damage,
+                origin = enemy.position,
+                pushForce = pushingForce
+            };
 
-    private void OnCollisionEnter2D(Collision2D collision)
+            collision.gameObject.SendMessage("TakeDamage", dmg);
+
+        }
+    }
+    /*private void OnCollisionEnter2D(Collision2D collision)
     {
         if (collision.gameObject.layer == LayerMask.NameToLayer("Player"))
         {
@@ -23,5 +37,5 @@ public class EnemyAttackPoint : MonoBehaviour
 
             collision.gameObject.SendMessage("TakeDamage", dmg);
         }
-    }
+    }*/
 }

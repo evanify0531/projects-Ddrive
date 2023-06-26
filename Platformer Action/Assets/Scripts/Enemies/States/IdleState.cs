@@ -58,10 +58,11 @@ public class IdleState : EnemyState
         
     }
 
-    private void OnDrawGizmos()
+    // I'll enable this when I need to check the vectors.
+    /*private void OnDrawGizmos()
     {
         Gizmos.color = Color.red;
         Gizmos.DrawLine(transform.position, new Vector3(transform.position.x - enemyStateManager.enemyDetectionObject.localScale.x, transform.position.y, 0f));
         Gizmos.DrawLine(transform.position, enemyStateManager.player.position);
-    }
+    }*/
 }

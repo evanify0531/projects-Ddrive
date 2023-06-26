@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<DialogueStringCollection>
+	<Dialog iD="1" npcName="hooded_man">
+		<Node iD="1">
+			<NPCTALK>Hello there.</NPCTALK>
+		</Node>
+		<Node iD="2">
+			<NPCTALK>You seem lost.</NPCTALK>
+		</Node>
+		<Node iD="3">
+			<NPCTALK>Like everyone else in this &lt;b&gt;cursed land&lt;/b&gt;.</NPCTALK>
+		</Node>
+	</Dialog>
+</DialogueStringCollection>

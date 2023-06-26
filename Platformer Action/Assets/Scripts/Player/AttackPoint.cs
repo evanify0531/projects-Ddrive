@@ -9,9 +9,7 @@ public class AttackPoint : MonoBehaviour
     public Transform player;
 
 
-
-
-    private void OnCollisionEnter2D(Collision2D collision)
+    private void OnTriggerEnter2D(Collider2D collision)
     {
         if (collision.gameObject.layer == LayerMask.NameToLayer("Enemy"))
         {
@@ -23,6 +21,8 @@ public class AttackPoint : MonoBehaviour
             };
 
             collision.gameObject.SendMessage("TakeDamage", dmg);
+
         }
     }
+
 }
